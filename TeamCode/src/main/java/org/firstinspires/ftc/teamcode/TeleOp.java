@@ -31,13 +31,20 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.LED;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "second", group = "Robot")
 public class TeleOp extends OpMode {
     private DcMotor topLeft, topRight, bottomLeft, bottomRight;
     private DcMotor intake, shooter;
+    private DcMotorEx theCoolerShooter;
     private CRServo leftIntake, midIntake, rightIntake;
+
+    private LED red, green;
+
+    private float intakeSpeed = 1.0f;
 
     @Override
     public void init() {
@@ -57,45 +64,61 @@ public class TeleOp extends OpMode {
         intake = hardwareMap.get(DcMotor.class, "intake");
         shooter = hardwareMap.get(DcMotor.class, "shooter");
 
+        theCoolerShooter = (DcMotorEx)shooter;
+
         leftIntake = hardwareMap.get(CRServo.class, "left_intake");
         midIntake = hardwareMap.get(CRServo.class, "mid_intake");
         rightIntake = hardwareMap.get(CRServo.class, "right_intake");
 
-        rightIntake.setDirection(DcMotor.Direction.REVERSE);
+        midIntake.setDirection(DcMotor.Direction.REVERSE);
+        leftIntake.setDirection(DcMotor.Direction.REVERSE);
+
+        red = hardwareMap.get(LED.class, "red");
+        green = hardwareMap.get(LED.class, "green");
     }
     @Override
     public void loop() {
         double lsY, lsX, rsX;
         float speed = 1.0f;
-        float frontIntakeSpeed = 0.0f;
+        float midIntakeSpeed = 0.0f;
         float shooterSpeed = 0.0f;
+        boolean atSpeed = theCoolerShooter.getVelocity() >= 1540;
 
         if (gamepad1.right_trigger > 0.1)
-            speed = 0.5f;
+                midIntakeSpeed = -1.0f;
 
         if (gamepad1.a)
-            frontIntakeSpeed = 1.0f;
+            midIntakeSpeed = 1.0f;
+
+        if (gamepad1.bWasPressed())
+            intakeSpeed = intakeSpeed == 0.0f ? 1.0f : 0.0f;
 
         if (gamepad1.left_trigger > 0.1)
-            shooterSpeed = 1.0f;
+            shooterSpeed = 0.60f;
+
+        green.enable(atSpeed);
+        red.enable(theCoolerShooter.getVelocity() >= 1440 && !atSpeed);
 
         lsY = -gamepad1.left_stick_y; // W_UP is now positive
-        lsX = gamepad1.left_stick_x;
+        lsX = -gamepad1.left_stick_x;
         rsX = -gamepad1.right_stick_x; // un-bottomwards it
         topLeft.setPower((lsY + lsX + rsX)  * speed);
         topRight.setPower((lsY - lsX - rsX) * speed);
         bottomLeft.setPower((lsY - lsX + rsX)   * speed);
         bottomRight.setPower((lsY + lsX - rsX)  * speed);
 
-        leftIntake.setPower(frontIntakeSpeed);
-        midIntake.setPower(frontIntakeSpeed);
-        rightIntake.setPower(frontIntakeSpeed);
+        leftIntake.setPower(1.0f);
+        midIntake.setPower(midIntakeSpeed);
+        rightIntake.setPower(1.0f);
 
-        intake.setPower(1.0f);
+        intake.setPower(intakeSpeed);
 
         shooter.setPower(shooterSpeed);
 
-        telemetry.addData("no suitable method found for", "addData(String)");
+        telemetry.addData("yeah", shooterSpeed);
+        telemetry.addData("nah", intakeSpeed);
+        telemetry.addData("vel", theCoolerShooter.getVelocity());
+        telemetry.addData(":3", gamepad1.left_trigger);
         telemetry.update();
     }
 }
